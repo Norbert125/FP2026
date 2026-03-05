@@ -3,15 +3,15 @@
 -- I. Mit csinálnak az alábbi függvényhívások, ahol az atlag a számok átlagát meghatározó függvény?
 
 -- ```haskell
--- atlag :: (Floating a) => [a] -> a
--- atlag ls = (sum ls) / fromIntegral (length ls)
+atlag :: (Floating a) => [a] -> a
+atlag ls = (sum ls) / fromIntegral (length ls)
 
--- > (atlag . filter (>= 4.5)) [6.5, 7.4, 8.9, 9.5, 3.5, 6.3, 4.2]
--- > atlag $ filter (< 4.5) [6.5, 7.4, 8.9, 9.5, 3.5, 6.3, 4.2]
--- > (take 4 . reverse . filter odd ) [1..20]
--- > take 4 . reverse . filter odd $ [1..20]
--- > take 4 ( reverse ( filter odd [1..20]))
--- > take 4 $ reverse $ filter odd $ [1..20]
+-- (atlag . filter (>= 4.5)) [6.5, 7.4, 8.9, 9.5, 3.5, 6.3, 4.2]
+--  atlag $ filter (< 4.5) [6.5, 7.4, 8.9, 9.5, 3.5, 6.3, 4.2]
+--  (take 4 . reverse . filter odd ) [1..20]
+--  take 4 . reverse . filter odd $ [1..20]
+--  take 4 ( reverse ( filter odd [1..20]))
+-- :take 4 $ reverse $ filter odd $ [1..20]
 -- ```
 
 -- II. Könyvtárfüggvények használata nélkül írjuk meg azt a Haskell függvényt, amely
