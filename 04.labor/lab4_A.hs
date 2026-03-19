@@ -1,0 +1,100 @@
+-- # 4. labor
+
+-- I. Definiáljuk azt a Haskell-listát, amely tartalmazza:
+
+-- - az első n páros szám négyzetét,
+parosNegyzet n = [i ^ 2 | i <- [0,2..n-2]]
+
+parosNegyzet2 n = take n [i ^ 2 | i <- [0,2..]]
+-- - az első $$[1, 2, 2, 3, 3, 3, 4, 4, 4, 4,\ldots]$$,
+szamokLs n
+    | n == 1 = replicate n n
+    | otherwise = szamokLs (n-1) ++ replicate n n
+
+szamokLs2 n i
+    | i /= n = replicate i i ++ szamokLs2 n (i+1)
+    | otherwise = replicate i i
+-- - az első $$[2, 4, 4, 6, 6, 6, 8, 8, 8, 8\ldots]$$,
+szamokLs3 n i
+    | i /= n = replicate i (i*2) ++ szamokLs3 n (i+1)
+    | otherwise = replicate i (i*2)
+-- - az első $$[n, n-1, \ldots, 2, 1, 1, 2, \ldots, n-1, n]$$,
+lsN n = [n, n-1 .. 1] ++ [1..n]
+lsN2 n = reverse [1 .. n] ++ [1 .. n]
+-- - váltakozva tartalmazzon True és False értékeket,
+tf n = [even i | i <- [1..n]]
+tf2 n = take n ls
+    where 
+        ls = [True, False] ++ ls
+-- tf3 n = replicate n [True,False]
+-- - váltakozva tartalmazza a $$0,\ 1,\ -1$$ értékeket.
+nullEgy n = take n ls
+    where 
+        ls = [0,1,-1] ++ ls
+
+nullEgy2 n = concat $ replicate n [0,1,-1]
+-- II. Könyvtárfüggvények használata nélkül írjuk meg azt a Haskell függvényt, amely
+
+-- - meghatározza egy adott szám osztóinak számát,
+osztok n = [i | i <- [1..n], mod n i == 0]
+osztokSz n = length $ osztok n
+osztokSz2 n = myLength $ osztok n
+    where
+        myLength [] = 0
+        myLength (_ : ls) = 1 + myLength ls
+
+osztokSz3 n = foldl (\res i -> if mod n i == 0 then res+1 else res) 0 [1..n]
+-- - meghatározza egy adott szám legnagyobb páratlan osztóját,
+lnP n = maximum [i | i <- osztok n, odd i]
+lnP2 n = [i | i <- [1,3..div n 2], mod n i == 0]
+lnP3 n = foldl (\res i -> if mod n i == 0 then i else res) 1 [1,3 .. div n 2] 
+-- - meghatározza, hogy egy tízes számrendszerbeli szám p számrendszerben, hány számjegyet tartalmaz,
+decP x p
+    | x < 0 = error "neg. szam"
+    | x < p = [x]
+    | otherwise = decP (div x p) p ++ [mod x p]
+
+decPSzam x p = length $ decP x p
+
+decPSzam2 x p = myLength2 $ decP x p
+    where
+        myLength2 [] = 0
+        myLength2 (_ : ls) = 1 + myLength2 ls
+-- - meghatározza, hogy egy tízes számrendszerbeli szám p számrendszerbeli alakjában melyik a legnagyobb számjegy,
+decPmax x p = maximum $ decP x p 
+-- - meghatározza az $a$ és $b$ közötti Fibonacci számokat, $a > 50$.
+fibo = fiboSg 0 1 0
+    where
+        fiboSg a b res = res : fiboSg b res (res+b)
+
+fiboAB a b = (dropWhile (<a) . takeWhile (<b)) fibo
+-- fiboAB2 a b = dropWhile (<a) $ takeWhile (<b) fibo
+-- fiboAB3 a b = dropWhile (<a) (takeWhile (<b)) fibo
+-- fiboAB4 a b = dropWhile (<a) . takeWhile (<b) $ fibo
+
+
+
+-- III. Könyvtárfüggvények használata nélkül írjuk meg azt a Haskell függvényt, amely
+
+-- - meghatározza egy lista pozitív elemeinek átlagát,
+atlag :: (Floating a) => [a] -> a 
+atlag ls = (sum ls) / fromIntegral (length ls)
+
+pozAtlag ls = atlag [i | i<-ls,i>0]
+pozAtlag2 ls = atlag $ filter (>0) ls
+-- - meghatározzuk azt a listát, amely tartalmazza az eredeti lista minden n-ik elemét,
+listaNelem ls n = [i | (indx,i)<-zip[1..]ls,mod i n == 0]
+listaNelem2 ls n i
+    | i >= length ls = []
+    | mod i n == 0 = ls !! i : listaNelem2 ls n (i+1)
+    | otherwise = listaNelem2 ls n (i+1)
+-- - tükrözi egy lista elemeit,
+tukor ls = reverse ls 
+tukor2 ls = foldl (\res x -> x : res) [] ls
+tukor3 ls = map tukorSzam ls
+    where
+        tukorSzam x 
+            | x < 10 = [x]
+            |otherwise = mod x 10 : tukorSzam (div x 10)
+-- - két módszerrel is meghatározza egy lista legnagyobb elemeinek pozícióit: a lista elemeit kétszer járja be, illetve úgy hogy a lista elemeit csak egyszer járja be,
+-- - meghatározza egy lista leggyakrabban előforduló elemét.
