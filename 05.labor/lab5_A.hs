@@ -5,33 +5,64 @@
 -- II. Írjunk Haskell-függvényt, amely a foldl vagy a foldr függvényt alkalmazva
 
 -- - implementálja a length, sum, elem, reverse, product, maximum, insert-sort, ++, map, filter függvényeket,
+lenght' ls = foldl (\res x -> res+1) 0 ls
+
+sum' ls = foldl (+) 0 ls
+sum2 ls = foldl1 (+) ls
+
+reverse' ls = foldl (\res x -> [x] ++ res) [] ls
+reverse2 ls = foldr (\x res -> res ++ [x]) [] ls
+
+product' ls = foldl (*) 1 ls
+product2 ls = foldl1 (*) ls
+
+maximum' ls = foldl1 (\x1 x2 -> max x1 x2) ls
+maximum2 ls = foldl1 (max) ls
+
+insertSort ls =  foldr insert [] ls
+    where
+        insert x [] = [x]
+        insert x (y:ys) 
+            | x < y = x:y:ys
+            | otherwise = y : (insert x ys)
+
+lsFuz lss = foldl1 (++) lss
+
+map' fg ls = foldl (\res x -> res ++ [fg x]) [] ls
+
+filter' fg ls = foldl (\res x -> if fg x then res ++ [x] else res) [] ls
 -- - meghatározza egy lista pozitív elemeinek összegét,
+possz ls = foldl (\res x -> if x >= 0 then res + x else res) 0 ls
 -- - egy lista páros elemeinek szorzatát,
+parosProd ls = foldl (\res x -> if even x then res * x else res) 1 ls
 -- - n-ig a négyzetszámokat.
+negyzet n = foldl (\res x -> res ++ [x^2]) [] [0..n]
+negyzet2 n = foldl (\res x -> if x^2 <= n then res ++ [x^2] else res) [] [0..n]
 -- - meghatározza a $$P(x) = a_0 + a_1 x + a_2 x^2 + \ldots + a_n x^n$$ polinom adott $x_0$ értékre való behelyettesítési értékét: $$a_0 + x_0(a_1 + x_0(a_2 + x_0(a_3 + \ldots + x_0(a_{n-1}+ x_0 \cdot a_n))))$$
+poli aLs x = foldr (\a res -> a + (x * res)) 0 aLs
 
 -- III.
 
 -- - Írjunk egy Haskell-függvényt, amely egy String típusú listából meghatározza azokat a szavakat, amelyek karakterszáma a legkisebb. Például ha a lista a következő szavakat tartalmazza:  function class Float higher-order monad tuple variable Maybe recursion  akkor az eredmény-lista a következőkből áll: class Float monad tuple Maybe
 
-import Data.Char
+-- import Data.Char
 
--- tokenize :: [Char] -> [String]
-tokenize = words . map (irasjelHelyettesit . toLower)
--- tokenize =  map (irasjelHelyettesit . toLower)
+-- -- tokenize :: [Char] -> [String]
+-- tokenize = words . map (irasjelHelyettesit . toLower)
+-- -- tokenize =  map (irasjelHelyettesit . toLower)
 
-irasjelHelyettesit :: Char -> Char
-irasjelHelyettesit c
-    | notElem c ",.;:!?\"'()[]<>" = c
-    | otherwise = ' '
+-- irasjelHelyettesit :: Char -> Char
+-- irasjelHelyettesit c
+--     | notElem c ",.;:!?\"'()[]<>" = c
+--     | otherwise = ' '
 
-lenghtLista ls = map length ls
+-- lenghtLista ls = map length ls
 
-myMinimum2 :: (Num b, Enum b, Ord a) => [a] -> (a, [b])
-myMinimum2 ls = (m, map snd $ filter fg $ zip ls [0,1..])
-    where
-        m = minimum ls
-        fg k = fst k == m
+-- myMinimum2 :: (Num b, Enum b, Ord a) => [a] -> (a, [b])
+-- myMinimum2 ls = (m, map snd $ filter fg $ zip ls [0,1..])
+--     where
+--         m = minimum ls
+--         fg k = fst k == m
 
 
 -- main = do
@@ -104,3 +135,8 @@ main = do
 --   zsuzsa 7.466666666666666
 --   levi 8.875
 --   ```
+
+nevsor = [("mari",[10, 6, 5.5, 8]), ("feri",[8.5, 9.5]),("zsuzsa",[4.5, 7.9, 10]),("levi", [8.5, 9.5, 10, 7.5])]
+atlagTu ls = mapM_ (\(nev, jegyekLs) -> putStrLn (nev ++ " " ++ show (atlag jegyekLs))) ls
+    where
+        atlag ls = sum ls / fromIntegral (length ls)
