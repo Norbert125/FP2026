@@ -1,0 +1,11 @@
+1994	Pulp Fiction	154	Crime	8.9	Yes	John Travolta	Uma Thurman	Tarantino Quentin
+2010	Inception	148	Sci-Fi	8.8	Yes	Leonardo DiCaprio	Ellen Page	Nolan Christopher
+2008	The Dark Knight	152	Action	9.0	No	Christian Bale	Maggie Gyllenhaal	Nolan Christopher
+1999	The Matrix	136	Sci-Fi	8.7	No	Keanu Reeves	Carrie-Anne Moss	Wachowski Lana
+2009	Avatar	162	Sci-Fi	7.9	Yes	Sam Worthington	Zoe Saldana	Cameron James
+2014	Interstellar	169	Sci-Fi	8.6	No	Matthew McConaughey	Anne Hathaway	Nolan Christopher
+1994	Forrest Gump	142	Drama	8.8	Yes	Tom Hanks	Robin Wright	Zemeckis Robert
+1997	Titanic	194	Drama	7.8	Yes	Leonardo DiCaprio	Kate Winslet	Cameron James
+1999	Fight Club	139	Drama	8.8	No	Brad Pitt	Helena Bonham Carter	Fincher David
+2007	No Country for Old Men	122	Thriller	8.1	Yes	Brad Pitt	Unknown	Coen Joel
+2008	The Curious Case of Benjamin Button	166	Drama	7.8	Yes	Brad Pitt	Cate Blanchett	Fincher David

@@ -1,0 +1,10 @@
+Inception;Nolan Christopher;2010;160000000
+The Dark Knight;Nolan Christopher;2008;185000000
+Avatar;Cameron James;2009;237000000
+Titanic;Cameron James;1997;200000000
+Pulp Fiction;Tarantino Quentin;1994;8000000
+The Matrix;Wachowski Lana;1999;63000000
+Interstellar;Nolan Christopher;2014;165000000
+Avengers;Russo Anthony;2012;220000000
+Dunkirk;Nolan Christopher;2017;100000000
+Tenet;Nolan Christopher;2020;225000000
