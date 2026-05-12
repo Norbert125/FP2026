@@ -1,8 +1,7 @@
-import Data.List              (sortBy, nub)
-import Data.Ord               (comparing)
-import Data.Char              (toLower)
-import Control.Monad          (when)
-import qualified Data.ByteString.Char8 as BS
+import Data.List              (sortBy)
+import Data.Char              (isDigit, isUpper, isAlpha, ord)
+import Data.Map.Strict        (Map)
+import qualified Data.Map.Strict as Map
 
 -- ===== Segédfüggvény =====
 
@@ -13,163 +12,155 @@ splitOn c (x:xs)
   | otherwise = (x : head rest) : tail rest
   where rest = splitOn c xs
 
--- ===== I. Feladat: Betegek =====
+trim :: String -> String
+trim = reverse . dropWhile (== ' ') . reverse . dropWhile (== ' ')
 
-data Beteg = Beteg
-  { bNev   :: String
-  , bVerny :: [(Int, Int)]
-  , bSzEv  :: Int
-  } deriving (Show)
+-- ===== I. Feladat: Szöveg formázás =====
+-- Az {.,!?;} halmazbeli írásjelek után szigorúan egy szóköz legyen.
 
-parsePar :: String -> (Int, Int)
-parsePar s = let [a, b] = splitOn '/' s in (read a, read b)
+formatText :: String -> String
+formatText [] = []
+formatText (c:cs)
+  | c `elem` ".,!?;" = c : ' ' : formatText (dropWhile (== ' ') cs)
+  | otherwise        = c : formatText cs
 
-parseBeteg :: String -> Beteg
-parseBeteg line =
-  let [nev, evStr, vStr] = splitOn ';' line
-  in Beteg nev (map parsePar (splitOn ',' vStr)) (read evStr)
+-- ===== II. Feladat: IBAN =====
 
-rendezBetegek :: [Beteg] -> [Beteg]
-rendezBetegek = sortBy (comparing (map toLower . bNev))
+rendezIBAN :: [String] -> [String]
+rendezIBAN = sortBy compare
 
-binarisKeres :: [Beteg] -> String -> Maybe Beteg
-binarisKeres [] _ = Nothing
-binarisKeres xs nev =
+binarisKeresIBAN :: [String] -> String -> Bool
+binarisKeresIBAN [] _ = False
+binarisKeresIBAN xs s =
   let mid = length xs `div` 2
-      b   = xs !! mid
-  in case compare (map toLower nev) (map toLower (bNev b)) of
-       EQ -> Just b
-       LT -> binarisKeres (take mid xs) nev
-       GT -> binarisKeres (drop (mid + 1) xs) nev
+      m   = xs !! mid
+  in case compare s m of
+       EQ -> True
+       LT -> binarisKeresIBAN (take mid xs) s
+       GT -> binarisKeresIBAN (drop (mid + 1) xs) s
 
-magasVp :: (Int, Int) -> Bool
-magasVp (s, d) = s > 160 || d > 140
+ervenyesKarakterek :: String -> Bool
+ervenyesKarakterek = all (\c -> isDigit c || isUpper c)
 
-magasVpDb :: Beteg -> Int
-magasVpDb = length . filter magasVp . bVerny
+-- Átcsoportosítás: első 4 karakter a végre kerül
+atcsoportosit :: String -> String
+atcsoportosit s = drop 4 s ++ take 4 s
 
--- ===== II. Feladat: Filmek (BST) =====
+-- Helyettesítés: A->10, B->11, ..., Z->35
+helyettesit :: String -> String
+helyettesit []     = []
+helyettesit (c:cs)
+  | isAlpha c = show (ord c - ord 'A' + 10) ++ helyettesit cs
+  | otherwise = c : helyettesit cs
 
-data Film = Film
-  { fcim     :: String
-  , fRendezo :: String
-  , fEv      :: Int
-  , fKoltseg :: Int
+ellenorizMod :: String -> Bool
+ellenorizMod s = (read s :: Integer) `mod` 97 == 1
+
+ervenyesIBAN :: Map String Int -> String -> Bool
+ervenyesIBAN hosszMap iban =
+  length iban >= 4 &&
+  ervenyesKarakterek iban &&
+  maybe False (== length iban) (Map.lookup (take 2 iban) hosszMap) &&
+  ellenorizMod (helyettesit (atcsoportosit iban))
+
+-- ibanLength.txt formátuma: "CC hossz" (pl. "GB 22")
+parseIBANHossz :: String -> (String, Int)
+parseIBANHossz line =
+  let ws = words line
+  in (head ws, read (ws !! 1))
+
+-- ===== III. Feladat: Személyek és névnapok =====
+
+data Datum = Datum
+  { nap   :: Int
+  , honap :: Int
+  , ev    :: Int
   } deriving (Show)
 
-data BST a = Ures | Csomp a (BST a) (BST a)
-
--- egyenlő kulcsok jobbra kerülnek (duplikátumok kezelése)
-bstBeszur :: Ord b => (a -> b) -> a -> BST a -> BST a
-bstBeszur _     x Ures = Csomp x Ures Ures
-bstBeszur kulcs x (Csomp y bal jobb)
-  | kulcs x < kulcs y = Csomp y (bstBeszur kulcs x bal) jobb
-  | otherwise         = Csomp y bal (bstBeszur kulcs x jobb)
-
-bstKeres :: Ord b => (a -> b) -> b -> BST a -> [a]
-bstKeres _     _ Ures = []
-bstKeres kulcs v (Csomp x bal jobb)
-  | v < kulcs x = bstKeres kulcs v bal
-  | v > kulcs x = bstKeres kulcs v jobb
-  | otherwise   = x : bstKeres kulcs v jobb  -- duplikátumok jobbra vannak
-
-bstInorder :: BST a -> [a]
-bstInorder Ures = []
-bstInorder (Csomp x bal jobb) = bstInorder bal ++ [x] ++ bstInorder jobb
-
-parseFilm :: String -> Film
-parseFilm line =
-  let [c, r, ev, k] = splitOn ';' line
-  in Film c r (read ev) (read k)
-
-maxKoltsegu :: [Film] -> [Film]
-maxKoltsegu [] = []
-maxKoltsegu fs = filter ((== maxK) . fKoltseg) fs
-  where maxK = maximum (map fKoltseg fs)
-
--- ===== III. Feladat: Filmek (ByteString) =====
-
-data Film3 = Film3
-  { f3Ev        :: BS.ByteString
-  , f3Cim       :: BS.ByteString
-  , f3Hossz     :: BS.ByteString
-  , f3Tipus     :: BS.ByteString
-  , f3Nepsz     :: BS.ByteString
-  , f3Dijazott  :: BS.ByteString
-  , f3Szinesz   :: BS.ByteString
-  , f3Szineszno :: BS.ByteString
-  , f3Rendezo   :: BS.ByteString
+data Szemely = Szemely
+  { vnev    :: String
+  , knev    :: String
+  , szdatum :: Datum
   } deriving (Show)
 
-parseFilm3 :: BS.ByteString -> Film3
-parseFilm3 line =
-  let ps    = BS.split '\t' line
-      get i = if i < length ps then ps !! i else BS.pack "Unknown"
-  in Film3 (get 0) (get 1) (get 2) (get 3) (get 4) (get 5) (get 6) (get 7) (get 8)
+-- Bemeneti formátum: "YYYY-MM-DD"
+parseDatum :: String -> Datum
+parseDatum s =
+  let [y, m, d] = splitOn '-' s
+  in Datum (read d) (read m) (read y)
 
-ugyanabbanAzEvben :: Film3 -> Film3 -> Bool
-ugyanabbanAzEvben a b = f3Ev a == f3Ev b
+-- Bemeneti formátum: "vezeteknev,keresztnev,YYYY-MM-DD"
+parseSzemely :: String -> Szemely
+parseSzemely line =
+  let [v, k, dStr] = splitOn ',' line
+  in Szemely (trim v) (trim k) (parseDatum (trim dStr))
 
-evCsoportok :: [Film3] -> [[Film3]]
-evCsoportok fs = map csop (nub (map f3Ev fs))
-  where csop ev = filter ((== ev) . f3Ev) fs
+pad2 :: Int -> String
+pad2 n
+  | n < 10    = "0" ++ show n
+  | otherwise = show n
 
-szineszFilmjei :: BS.ByteString -> [Film3] -> [BS.ByteString]
-szineszFilmjei nev = map f3Cim . filter ((== nev) . f3Szinesz)
+-- Zeller-féle kongruencia (Gergely-naptár)
+-- h: 0=Szombat, 1=Vasárnap, 2=Hétfő, ..., 6=Péntek
+hetNapja :: Datum -> String
+hetNapja (Datum d m y) =
+  let (m', y') = if m <= 2 then (m + 12, y - 1) else (m, y)
+      k        = y' `mod` 100
+      j        = y' `div` 100
+      h        = (d + (13 * (m' + 1)) `div` 5 + k + k `div` 4 + j `div` 4 - 2 * j) `mod` 7
+      napok    = ["Szombat", "Vasárnap", "Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek"]
+  in napok !! ((h `mod` 7 + 7) `mod` 7)
+
+-- nevnapok.txt formátuma: "HH.NN. Nev1, Nev2" (pl. "01.01. Újév")
+parseNevnap :: String -> (String, String)
+parseNevnap line =
+  let (dat, rest) = break (== ' ') (trim line)
+  in (dat, trim rest)
+
+keresNevnap :: [(String, String)] -> Int -> Int -> String
+keresNevnap nevnapok h n =
+  let kulcs = pad2 h ++ "." ++ pad2 n ++ "."
+  in case lookup kulcs nevnapok of
+       Just nv -> nv
+       Nothing -> "ismeretlen"
 
 -- ===== Main =====
 
 main :: IO ()
 main = do
-  -- I. Betegek
-  putStrLn "=== I. Feladat: Betegek ==="
-  betegSor <- readFile "betegek.txt"
-  let betegek   = map parseBeteg . filter (not . null) . lines $ betegSor
-      rendezett = rendezBetegek betegek
-  putStrLn "Rendezett betegek:"
-  mapM_ (putStrLn . bNev) rendezett
-  let kerNev = "Kovacs Janos"
-  case binarisKeres rendezett kerNev of
-    Nothing -> putStrLn $ kerNev ++ " nem talalhato."
-    Just b  -> do
-      putStrLn $ "\nBeteg: " ++ bNev b ++ ", szuletesi ev: " ++ show (bSzEv b)
-      putStrLn $ "Vernyomas ertekek: " ++ show (bVerny b)
-      putStrLn $ "Magas vernyomas szama: " ++ show (magasVpDb b)
+  -- I. Szöveg formázás
+  putStrLn "=== I. Feladat: Szöveg formázás ==="
+  szoveg <- readFile "szoveg.txt"
+  let formatalt = formatText szoveg
+  writeFile "szoveg_formatalt.txt" formatalt
+  putStrLn "szoveg_formatalt.txt megírva."
 
-  -- II. Filmek BST
-  putStrLn "\n=== II. Feladat: Filmek (BST) ==="
-  filmSor <- readFile "filmek.txt"
-  let filmek = map parseFilm . filter (not . null) . lines $ filmSor
-      filmFa = foldl (flip (bstBeszur fEv)) Ures filmek
-  let ev = 2010
-  putStrLn $ show ev ++ "-ban megjelent filmek:"
-  mapM_ (putStrLn . fcim) (bstKeres fEv ev filmFa)
-  putStrLn "\nInorder bejarat (ev szerint novekvo):"
-  mapM_ (\f -> putStrLn $ fcim f ++ " (" ++ show (fEv f) ++ ")") (bstInorder filmFa)
-  putStrLn "\nLegnagyobb koltsegu film(ek):"
-  mapM_ (putStrLn . fcim) (maxKoltsegu filmek)
+  -- II. IBAN
+  putStrLn "\n=== II. Feladat: IBAN ==="
+  ibanSor  <- readFile "iban.txt"
+  hosszSor <- readFile "ibanLength.txt"
+  let ibanok   = filter (not . null) . lines $ ibanSor
+      rendezve = rendezIBAN ibanok
+      hosszMap = Map.fromList . map parseIBANHossz . filter (not . null) . lines $ hosszSor
+  putStrLn "Rendezett IBAN kódok (első 5):"
+  mapM_ putStrLn (take 5 rendezve)
+  let keresett = "GB82WEST12345698765432"
+  putStrLn $ "\n" ++ keresett ++ " megtalálható: " ++ show (binarisKeresIBAN rendezve keresett)
+  let okIban = filter (ervenyesIBAN hosszMap) ibanok
+  writeFile "okIban.txt" (unlines okIban)
+  putStrLn $ "Érvényes IBAN-ok: " ++ show (length okIban) ++ " → okIban.txt megírva."
 
-  -- III. Filmek ByteString
-  putStrLn "\n=== III. Feladat: Filmek (ByteString) ==="
-  tartalom <- BS.readFile "film.txt"
-  let film3ok = map parseFilm3 . filter (not . BS.null) . BS.lines $ tartalom
-  when (length film3ok >= 2) $ do
-    let (f1, f2) = (head film3ok, film3ok !! 1)
-    putStrLn $ "Az 1. es 2. film ugyanabban az evben keszult: "
-             ++ show (ugyanabbanAzEvben f1 f2)
-  let rendFilmek = sortBy (comparing f3Ev) film3ok
-  BS.writeFile "rendFilm.txt" . BS.unlines . map f3Cim $ rendFilmek
-  putStrLn "rendFilm.txt megirva."
-  let unknown     = BS.pack "Unknown"
-      szineszek   = nub . filter (/= unknown) . map f3Szinesz   $ film3ok
-      szinesznoik = nub . filter (/= unknown) . map f3Szineszno $ film3ok
-  BS.writeFile "szineszek.txt" . BS.unlines $ szineszek
-  putStrLn "szineszek.txt megirva."
-  putStrLn $ "Szineszek szama: "  ++ show (length szineszek)
-  putStrLn $ "Szinesznok szama: " ++ show (length szinesznoik)
-  let csoportok = evCsoportok film3ok
-  putStrLn $ "Ev-csoportok szama: " ++ show (length csoportok)
-  let kerSzinesz = BS.pack "Brad Pitt"
-      filmjei    = szineszFilmjei kerSzinesz film3ok
-  putStrLn $ "\n" ++ BS.unpack kerSzinesz ++ " filmjei:"
-  mapM_ (putStrLn . BS.unpack) filmjei
+  -- III. Személyek
+  putStrLn "\n=== III. Feladat: Személyek ==="
+  szemelysor <- readFile "szemelyek.txt"
+  nevnapsor  <- readFile "nevnapok.txt"
+  let szemelyek = map parseSzemely . filter (not . null) . lines $ szemelysor
+      nevnapok  = map parseNevnap  . filter (not . null) . lines $ nevnapsor
+  mapM_ (\sz -> do
+    let d      = szdatum sz
+        hetNap = hetNapja d
+        nevnap = keresNevnap nevnapok (honap d) (nap d)
+    putStrLn $ vnev sz ++ " " ++ knev sz
+             ++ " – születési nap: " ++ hetNap
+             ++ ", névnap: " ++ nevnap
+    ) szemelyek
